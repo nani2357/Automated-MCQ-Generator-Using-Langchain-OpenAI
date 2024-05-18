@@ -40,8 +40,8 @@ with st.form("user_inputs"):
     uploaded_file = st.file_uploader("Upload a PDF or txt file", type=["pdf", "txt"])
     text_input = st.text_area("Or paste your text here (max 2000 words):", max_chars=20000)
     mcq_counts = st.number_input("No.of MCQs", min_value=5, max_value=30)
-    subject = st.text_input("Insert Subject", max_chars=20)
-    tone = st.text_input("Complexity Level of Question", max_chars=20, placeholder="Simple")
+    subject = st.text_input("Insert Subject", max_chars=50)
+    tone = st.text_input("Complexity Level of Question", max_chars=30, placeholder="Simple")
     button = st.form_submit_button("Create MCQs")
 
 if button:
@@ -87,7 +87,7 @@ if button:
                             df = pd.DataFrame(table_data)
                             df.index = df.index + 1
                             st.table(df)
-                            st.text_area("Review", value=response["review"])
+                            st.text_area("Review", value=response["review"],height=350)
                         else:
                             st.error("Error in processing table data")
                 else:

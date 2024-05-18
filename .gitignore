@@ -1,3 +1,5 @@
 env
 mcqgenrator.egg-info
 .env
+logs
+test.py

@@ -38,25 +38,42 @@ Dive into a seamless quiz creation experience with QuizMaster!
 # User input form
 with st.form("user_inputs"):
     uploaded_file = st.file_uploader("Upload a PDF or txt file", type=["pdf", "txt"])
-    text_input = st.text_area("Or paste your text here (max 2000 words):", max_chars=20000)
-    mcq_counts = st.number_input("No.of MCQs", min_value=5, max_value=30)
-    subject = st.text_input("Insert Subject", max_chars=20)
-    tone = st.text_input("Complexity Level of Question", max_chars=20, placeholder="Simple")
+    text_input = st.text_area("Or paste your text here (max 2000 words):", max_chars=15000)
+    mcq_counts = st.number_input("Number of MCQs", min_value=5, max_value=30)
+    subject = st.text_input("Insert Subject", max_chars=50)
+    tone = st.text_input("Complexity Level of Question", max_chars=30, placeholder="Simple")
     button = st.form_submit_button("Create MCQs")
 
 if button:
+    error_message = []
     content = None
-    if uploaded_file is not None:
+
+    # Check file size if a file is uploaded
+    if uploaded_file is not None and uploaded_file.size > 2 * 1024 * 1024:  # file size in bytes (2MB)
+        error_message.append("File size must be under 2MB.")
+    
+    # Ensure that only one input method is used
+    if (uploaded_file is not None and text_input.strip()) or (uploaded_file is None and not text_input.strip()):
+        error_message.append("Please either upload a file or input text, not both.")
+
+    # Check for required inputs
+    if not (mcq_counts and subject and tone):
+        error_message.append("Please ensure all fields are filled out.")
+
+    if not error_message and uploaded_file is not None:
         with st.spinner("Loading..."):
             try:
                 content = read_file(uploaded_file)
             except Exception as e:
                 traceback.print_exception(type(e), e, e.__traceback__)
                 st.error("Failed to read file.")
-    else:
+    elif not error_message:
         content = text_input.strip()
 
-    if content and mcq_counts and subject and tone:
+    if error_message:
+        for message in error_message:
+            st.error(message)
+    elif content:
         with st.spinner("Generating MCQs..."):
             try:
                 with get_openai_callback() as cb:
@@ -68,10 +85,11 @@ if button:
                         "response_json": json.dumps(RESPONSE_JSON)
                     })
                     st.success("MCQs generated successfully!")
-                    # Handle displaying the response here
+                    # Here, add code to handle and display the response if necessary
             except Exception as e:
                 traceback.print_exception(type(e), e, e.__traceback__)
                 st.error("An error occurred while generating MCQs.")
+                
             else:
                 # Display token and cost details if required
                 st.write(f"Total Tokens: {cb.total_tokens}")
@@ -87,7 +105,17 @@ if button:
                             df = pd.DataFrame(table_data)
                             df.index = df.index + 1
                             st.table(df)
-                            st.text_area("Review", value=response["review"])
+                            st.text_area("Review", value=response["review"], height=350)
+                            
+                            # Convert DataFrame to CSV for download
+                            csv = df.to_csv(index=False).encode('utf-8')
+                            st.download_button(
+                                label="Download MCQs as CSV",
+                                data=csv,
+                                file_name="mcqs.csv",
+                                mime="text/csv",
+                            )
+
                         else:
                             st.error("Error in processing table data")
                 else:
